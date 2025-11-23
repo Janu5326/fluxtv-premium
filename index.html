@@ -1,0 +1,981 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>FluxTV Premium</title>
+
+<!-- Inter font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<!-- HLS.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.5/dist/hls.min.js"></script>
+
+<style>
+  :root{
+    --bg: #0f1724;
+    --card-bg: rgba(255,255,255,0.03);
+    --text: #e6eef8;
+    --muted: #9fb0d6;
+    --accent: #2b6cb0; /* primary */
+    --accent-2: #1e3a8a; /* darker */
+    --gradient-primary: linear-gradient(135deg,var(--accent),var(--accent-2));
+    --gradient-accent: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    --shadow-lg: 0 8px 20px rgba(2,6,23,0.6);
+    --shadow-xl: 0 16px 40px rgba(2,6,23,0.7);
+    --glass: rgba(255,255,255,0.03);
+    --radius: 14px;
+    --transition-fast: 180ms cubic-bezier(.2,.9,.3,1);
+    --transition-mid: 300ms cubic-bezier(.2,.9,.3,1);
+    --max-width: 1100px;
+    --nav-height: 68px;
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+
+  /* Theme variants controlled via [data-theme] & [data-theme-color] */
+  body[data-theme="light"]{
+    --bg: #f6f9fc;
+    --card-bg: #ffffff;
+    --text: #0b1220;
+    --muted: #53607a;
+    --glass: rgba(2,6,23,0.03);
+    --shadow-lg: 0 8px 20px rgba(15,23,42,0.06);
+    --shadow-xl: 0 18px 40px rgba(15,23,42,0.06);
+  }
+  body[data-theme-color="navy"]{ --accent:#0f1724; --accent-2:#1e3a8a; }
+  body[data-theme-color="blue"]{ --accent:#1e40af; --accent-2:#3b82f6; }
+  body[data-theme-color="teal"]{ --accent:#0d9488; --accent-2:#14b8a6; }
+  body[data-theme-color="purple"]{ --accent:#7c3aed; --accent-2:#a78bfa; }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    transition:background var(--transition-mid), color var(--transition-mid);
+    display:flex; flex-direction:column; align-items:center; padding:12px;
+    gap:12px;
+  }
+
+  .app{
+    width:100%; max-width:var(--max-width); position:relative;
+    display:flex; flex-direction:column; gap:12px;
+  }
+
+  header.app-header{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:10px 12px; border-radius:12px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    box-shadow:var(--shadow-lg);
+    backdrop-filter: blur(6px);
+  }
+  .brand{display:flex; align-items:center; gap:10px}
+  .logo{
+    width:44px; height:44px; border-radius:10px; display:grid; place-items:center;
+    background:var(--gradient-primary); box-shadow:var(--shadow-xl); color:white;
+    font-weight:800; font-size:18px;
+  }
+  .brand h1{font-size:16px; margin:0}
+  .header-actions{display:flex; gap:8px; align-items:center}
+  .icon-btn{background:transparent; border:0; color:var(--text); padding:8px; border-radius:10px; cursor:pointer; transition:transform var(--transition-fast)}
+  .icon-btn:active{transform:scale(.96)}
+  .search-mini{min-width:120px; padding:8px 10px; border-radius:10px; background:var(--card-bg); color:var(--text); display:flex; align-items:center; gap:8px; box-shadow:var(--shadow-lg)}
+
+  main.app-body{display:flex; gap:12px; flex-direction:column; padding:0 2px;}
+
+  /* Screens */
+  .screen{display:none; flex-direction:column; gap:12px}
+  .screen.active{display:flex}
+
+  /* Hero */
+  .hero{
+    display:flex; gap:12px; align-items:center; padding:12px; border-radius:12px;
+    background:var(--card-bg); box-shadow:var(--shadow-lg);
+    overflow:hidden;
+  }
+  .hero-left{flex:1}
+  .hero h2{margin:0 0 6px 0; font-size:18px}
+  .hero p{margin:0; color:var(--muted)}
+  .stats{display:flex; gap:8px; margin-top:10px}
+  .stat{background:var(--glass); padding:8px 12px; border-radius:10px; min-width:88px; text-align:center}
+  .stat strong{display:block; font-size:18px}
+  .hero-right{width:140px; height:88px; border-radius:12px; background:var(--gradient-primary); color:white; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-xl)}
+
+  /* Horizontal lists */
+  .horizontal{
+    display:flex; overflow:auto; gap:10px; padding:8px;
+  }
+  .card{
+    min-width:140px; background:var(--card-bg); border-radius:12px; padding:10px; box-shadow:var(--shadow-lg);
+    flex:0 0 auto; transition:transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .card:hover{transform:translateY(-6px); box-shadow:var(--shadow-xl)}
+
+  .playlist .thumb{height:84px; border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); display:flex; align-items:center; justify-content:center; font-weight:700}
+  .category{display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; width:120px}
+  .category .icon{font-size:22px; padding:12px; border-radius:50%; background:var(--glass)}
+  .small{font-size:13px; color:var(--muted)}
+
+  /* Search grid */
+  .grid{display:grid; gap:12px; grid-template-columns:repeat(auto-fill, minmax(160px,1fr))}
+  .channel-card{padding:10px; border-radius:12px; background:var(--card-bg); display:flex; flex-direction:column; gap:8px; align-items:flex-start}
+  .channel-thumb{width:100%; height:96px; border-radius:10px; background:var(--gradient-accent); display:flex; align-items:center; justify-content:center; color:var(--text); font-weight:700}
+  .channel-meta{display:flex; justify-content:space-between; width:100%; align-items:center}
+  .channel-meta small{color:var(--muted)}
+
+  /* Player sticky */
+  .player-wrap{
+    position:sticky; top:12px; z-index:40; width:100%;
+    border-radius:14px; overflow:hidden; background:linear-gradient(180deg, rgba(0,0,0,0.2), transparent);
+    box-shadow:var(--shadow-xl);
+  }
+  .player{
+    display:flex; flex-direction:column;
+  }
+  .video-area{position:relative; width:100%; background:#000}
+  video#player{width:100%; height:220px; background:#000; display:block}
+  .player-controls{display:flex; justify-content:space-between; align-items:center; padding:10px; gap:8px}
+  .player-meta{display:flex; gap:12px; align-items:center}
+  .btn{background:var(--accent); color:white; border:0; padding:8px 12px; border-radius:10px; cursor:pointer}
+  .btn.ghost{background:transparent; color:var(--text); border:1px solid rgba(255,255,255,0.04)}
+
+  /* Suggested list */
+  .suggested .card{min-width:120px}
+
+  /* Bottom nav */
+  nav.bottom-nav{
+    position:fixed; bottom:12px; left:50%; transform:translateX(-50%); width:calc(100% - 24px); max-width:var(--max-width);
+    height:var(--nav-height); background:var(--card-bg); border-radius:18px; display:flex; justify-content:space-around; align-items:center;
+    box-shadow:var(--shadow-xl); z-index:60;
+  }
+  .nav-item{display:flex; flex-direction:column; align-items:center; gap:4px; font-size:12px; color:var(--muted); cursor:pointer; padding:8px; border-radius:10px}
+  .nav-item.active{color:var(--accent); transform:translateY(-4px)}
+
+  /* Mini player */
+  .mini-player{
+    position:fixed; bottom:100px; right:18px; width:220px; height:124px; border-radius:12px; overflow:hidden; box-shadow:var(--shadow-xl);
+    background:var(--card-bg); z-index:90; display:flex; flex-direction:column;
+    transition:transform var(--transition-mid), opacity var(--transition-fast);
+  }
+  .mini-player video{width:100%; height:100%; object-fit:cover}
+
+  /* Modals & overlay */
+  .overlay{position:fixed; inset:0; background:rgba(2,6,23,0.5); display:none; z-index:80; backdrop-filter: blur(2px); align-items:center; justify-content:center}
+  .overlay.show{display:flex}
+  .modal{width:calc(100% - 64px); max-width:720px; background:var(--card-bg); border-radius:14px; padding:16px; box-shadow:var(--shadow-xl)}
+  .modal h3{margin-top:0}
+
+  /* EPG blur */
+  .blurred{filter: blur(6px) brightness(.9); transition:filter var(--transition-mid)}
+
+  /* Forms and inputs */
+  input, select, textarea{width:100%; padding:10px; border-radius:10px; border:0; background:rgba(255,255,255,0.03); color:var(--text); resize:vertical}
+  label{font-size:13px; color:var(--muted); margin-bottom:6px; display:block}
+  .row{display:flex; gap:8px}
+  .row > *{flex:1}
+
+  /* Responsive */
+  @media (max-width:768px){
+    video#player{height:200px}
+    .hero{flex-direction:column; align-items:flex-start}
+    .hero-right{width:100%; height:68px}
+    .nav-item span{display:none}
+  }
+  @media (max-width:480px){
+    video#player{height:160px}
+    .card{min-width:120px}
+    .horizontal{padding:6px}
+    header.app-header{padding:8px}
+  }
+
+  /* tiny animations */
+  .fade-in{animation:fadeIn .36s ease both}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+
+</style>
+</head>
+<body data-theme="dark" data-theme-color="navy">
+
+<div class="app" id="app">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo">Fx</div>
+      <div>
+        <h1>FluxTV Premium</h1>
+        <div class="small">Live TV • Premium UI</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="search-mini" id="goSearch" role="button" tabindex="0"><i class="fa fa-search"></i><span class="small">Search channels</span></div>
+      <button class="icon-btn" id="openSettings" title="Settings"><i class="fa fa-gear"></i></button>
+      <button class="icon-btn" id="openEPG" title="EPG"><i class="fa fa-calendar-days"></i></button>
+    </div>
+  </header>
+
+  <main class="app-body">
+    <!-- HOME -->
+    <section id="home" class="screen active fade-in">
+      <div class="hero">
+        <div class="hero-left">
+          <h2>Welcome back — Enjoy curated TV</h2>
+          <p>Discover playlists, browse categories and watch live channels in crisp quality.</p>
+          <div class="stats">
+            <div class="stat"><small>Total Channels</small><strong id="statChannels">0</strong></div>
+            <div class="stat"><small>Favorites</small><strong id="statFavs">0</strong></div>
+            <div class="stat"><small>Categories</small><strong id="statCats">0</strong></div>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div style="text-align:center">
+            <div style="font-size:20px;font-weight:700">Premium</div>
+            <div class="small">Streaming • Smooth UI</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin:6px 6px 0 6px">Discover Playlists</h3>
+      <div class="horizontal playlist" id="playlists"></div>
+
+      <h3 style="margin:6px 6px 0 6px">Browse by Category</h3>
+      <div class="horizontal categories" id="categories"></div>
+
+      <h3 style="margin:6px 6px 0 6px">Recently Watched</h3>
+      <div class="horizontal" id="recently"></div>
+
+      <h3 style="margin:6px 6px 0 6px">Popular Channels</h3>
+      <div class="horizontal suggested" id="popular"></div>
+    </section>
+
+    <!-- SEARCH -->
+    <section id="search" class="screen fade-in">
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+        <input id="searchInput" placeholder="Search channel name..." />
+        <select id="filterCategory"><option value="">All categories</option></select>
+        <select id="filterLang"><option value="">All languages</option><option value="EN">EN</option><option value="ES">ES</option><option value="FR">FR</option></select>
+        <select id="filterQuality"><option value="">Any quality</option><option>Auto</option><option>1080p</option><option>720p</option><option>480p</option></select>
+        <button class="btn" id="clearFilters">Clear</button>
+      </div>
+
+      <div style="margin-top:10px" id="searchResults" class="grid"></div>
+      <div id="noResults" class="small" style="display:none; margin-top:12px">No channels match your filters.</div>
+    </section>
+
+    <!-- PLAYER -->
+    <section id="player" class="screen fade-in">
+      <div class="player-wrap">
+        <div class="player" id="playerComponent">
+          <div class="video-area">
+            <video id="playerVideo" controls playsinline></video>
+            <div style="position:absolute; right:10px; top:10px; display:flex; gap:8px;">
+              <button class="icon-btn" id="btnFav" title="Favorite"><i class="fa fa-heart"></i></button>
+              <button class="icon-btn" id="btnMini" title="Mini player"><i class="fa fa-window-minimize"></i></button>
+              <button class="icon-btn" id="btnFullscreen" title="Fullscreen"><i class="fa fa-expand"></i></button>
+            </div>
+          </div>
+          <div class="player-controls">
+            <div class="player-meta">
+              <div>
+                <div id="playerTitle" style="font-weight:700">--</div>
+                <small id="playerInfo" class="small">Category · Quality · Status</small>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center">
+              <select id="qualitySelect" style="padding:8px 10px; border-radius:10px; background:transparent; color:var(--text)"></select>
+              <button class="btn ghost" id="btnBack"><i class="fa fa-arrow-left"></i> Back</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h4 style="margin:8px 6px 0 6px">Suggested Channels</h4>
+      <div class="horizontal suggested" id="playerSuggested"></div>
+    </section>
+
+    <!-- FAVORITES -->
+    <section id="favorites" class="screen fade-in">
+      <h3>Favorites</h3>
+      <div id="favoritesList" class="horizontal"></div>
+      <div id="favoritesEmpty" class="small" style="display:none; padding:12px">No favorites yet. Add channels by tapping the heart on a player or channel card.</div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settings" class="screen fade-in">
+      <h3>Settings</h3>
+      <div style="display:flex; gap:12px; flex-direction:column;">
+        <div style="display:flex; gap:12px; align-items:center; padding:10px; border-radius:12px; background:var(--card-bg); box-shadow:var(--shadow-lg)">
+          <div style="flex:1">
+            <label>Display & Appearance</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button class="btn" id="toggleTheme">Toggle Dark/Light</button>
+              <select id="themeColor">
+                <option value="navy">Navy</option>
+                <option value="blue">Blue</option>
+                <option value="teal">Teal</option>
+                <option value="purple">Purple</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:10px; border-radius:12px; background:var(--card-bg); box-shadow:var(--shadow-lg)">
+          <label>Playback</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label style="margin:0"><input type="checkbox" id="autoplayToggle" /> Autoplay</label>
+            <label style="margin:0"><input type="checkbox" id="pipToggle" /> Enable Mini Player</label>
+          </div>
+        </div>
+
+        <div style="padding:10px; border-radius:12px; background:var(--card-bg); box-shadow:var(--shadow-lg)">
+          <label>Channel Management</label>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn" id="openImport">Import Playlists</button>
+            <button class="btn" id="openAddChannel">Add Channel</button>
+            <button class="btn ghost" id="manageChannels">Manage Custom</button>
+          </div>
+        </div>
+
+        <div style="padding:10px; border-radius:12px; background:var(--card-bg); box-shadow:var(--shadow-lg)">
+          <label>Data & Storage</label>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn ghost" id="clearCache">Clear Cache</button>
+            <button class="btn" id="exportFavs">Export Favorites</button>
+          </div>
+        </div>
+
+        <div style="padding:10px; border-radius:12px; background:var(--card-bg); box-shadow:var(--shadow-lg)">
+          <label>About</label>
+          <div class="small">FluxTV Premium • Version 1.0 • Demo UI</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav" role="navigation" aria-label="Main Navigation">
+    <div class="nav-item active" data-screen="home"><i class="fa fa-house"></i><span>Home</span></div>
+    <div class="nav-item" data-screen="search"><i class="fa fa-search"></i><span>Search</span></div>
+    <div class="nav-item" data-screen="player"><i class="fa fa-play-circle"></i><span>Player</span></div>
+    <div class="nav-item" data-screen="favorites"><i class="fa fa-heart"></i><span>Favs</span></div>
+    <div class="nav-item" data-screen="settings"><i class="fa fa-gear"></i><span>Settings</span></div>
+  </nav>
+</div>
+
+<!-- Overlays / Modals -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<!-- Mini-player container (hidden until used) -->
+<div id="miniPlayerContainer"></div>
+
+<script>
+/* ====================
+   Sample channel data
+   ==================== */
+const sampleChannels = [
+  {
+    id: 'ch1',
+    title: 'World News HD',
+    category: 'News',
+    language: 'EN',
+    thumbnail: 'WN',
+    popular: true,
+    sources: {
+      'Auto': 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+      '1080p': 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+      '720p': 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+    },
+    status: 'Live'
+  },
+  {
+    id: 'ch2',
+    title: 'Cinema Plus',
+    category: 'Movies',
+    language: 'EN',
+    thumbnail: 'CP',
+    popular: true,
+    sources: {
+      'Auto': 'https://test-streams.mux.dev/test_001/stream.m3u8',
+      '720p': 'https://test-streams.mux.dev/test_001/stream.m3u8',
+      '480p': 'https://test-streams.mux.dev/test_001/stream.m3u8',
+    },
+    status: 'Live'
+  },
+  {
+    id: 'ch3',
+    title: 'Kids Fun',
+    category: 'Kids',
+    language: 'EN',
+    thumbnail: 'KF',
+    sources: {
+      'Auto': 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8'
+    },
+    status: 'Live'
+  },
+  {
+    id: 'ch4',
+    title: 'Sports Arena',
+    category: 'Sports',
+    language: 'ES',
+    thumbnail: 'SA',
+    sources: {
+      'Auto': 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    },
+    status: 'Live'
+  },
+  {
+    id: 'ch5',
+    title: 'Music Beats',
+    category: 'Music',
+    language: 'FR',
+    thumbnail: 'MB',
+    sources: {
+      'Auto': 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+    },
+    status: 'Live'
+  }
+];
+
+/* ====================
+   App state & storage
+   ==================== */
+const LS = {
+  favorites: 'flux_favorites_v1',
+  settings: 'flux_settings_v1',
+  customChannels: 'flux_custom_v1',
+  recent: 'flux_recent_v1',
+};
+
+const state = {
+  channels: [],
+  favorites: new Set(),
+  settings: { theme: 'dark', color: 'navy', autoplay: false },
+  current: null,
+  hls: null,
+  recent: []
+};
+
+/* Initialize from storage */
+function loadState(){
+  state.channels = JSON.parse(localStorage.getItem(LS.customChannels) || '[]').concat(sampleChannels);
+  const favs = JSON.parse(localStorage.getItem(LS.favorites) || '[]');
+  state.favorites = new Set(favs);
+  state.settings = Object.assign(state.settings, JSON.parse(localStorage.getItem(LS.settings) || '{}'));
+  state.recent = JSON.parse(localStorage.getItem(LS.recent) || '[]');
+}
+loadState();
+
+/* Write settings & favorites */
+function saveFavorites(){ localStorage.setItem(LS.favorites, JSON.stringify(Array.from(state.favorites))); updateStats(); renderFavorites(); }
+function saveSettings(){ localStorage.setItem(LS.settings, JSON.stringify(state.settings)); applyTheme(); }
+function saveCustomChannels(){ localStorage.setItem(LS.customChannels, JSON.stringify(state.channels.filter(ch=>ch.custom))); }
+function saveRecent(){ localStorage.setItem(LS.recent, JSON.stringify(state.recent.slice(0,20))); }
+
+/* DOM refs */
+const screens = document.querySelectorAll('.screen');
+const navItems = document.querySelectorAll('.nav-item');
+const playlistsEl = document.getElementById('playlists');
+const categoriesEl = document.getElementById('categories');
+const recentlyEl = document.getElementById('recently');
+const popularEl = document.getElementById('popular');
+const searchResults = document.getElementById('searchResults');
+const searchInput = document.getElementById('searchInput');
+const filterCategory = document.getElementById('filterCategory');
+const filterLang = document.getElementById('filterLang');
+const filterQuality = document.getElementById('filterQuality');
+const noResults = document.getElementById('noResults');
+const statChannels = document.getElementById('statChannels');
+const statFavs = document.getElementById('statFavs');
+const statCats = document.getElementById('statCats');
+const favoritesList = document.getElementById('favoritesList');
+const favoritesEmpty = document.getElementById('favoritesEmpty');
+const overlay = document.getElementById('overlay');
+const modalContent = document.getElementById('modalContent');
+
+const playerSection = document.getElementById('player');
+const playerVideo = document.getElementById('playerVideo');
+const qualitySelect = document.getElementById('qualitySelect');
+const playerTitle = document.getElementById('playerTitle');
+const playerInfo = document.getElementById('playerInfo');
+const btnFav = document.getElementById('btnFav');
+const btnMini = document.getElementById('btnMini');
+const btnFullscreen = document.getElementById('btnFullscreen');
+const btnBack = document.getElementById('btnBack');
+
+const miniContainer = document.getElementById('miniPlayerContainer');
+
+/* Utility */
+function qs(sel, parent=document){ return parent.querySelector(sel) }
+function qsa(sel, parent=document){ return Array.from(parent.querySelectorAll(sel)) }
+
+/* Apply theme & color */
+function applyTheme(){
+  document.body.setAttribute('data-theme', state.settings.theme === 'light' ? 'light' : 'dark');
+  document.body.setAttribute('data-theme-color', state.settings.color || 'navy');
+}
+applyTheme();
+
+/* Render helpers */
+function updateStats(){
+  statChannels.textContent = state.channels.length;
+  statFavs.textContent = state.favorites.size;
+  statCats.textContent = new Set(state.channels.map(c=>c.category)).size;
+}
+
+/* Render home lists */
+function renderPlaylists(){
+  playlistsEl.innerHTML = '';
+  // simple playlists demo
+  const lists = [
+    {title:'Top News', count:5},
+    {title:'Movies', count:12},
+    {title:'Kids', count:8},
+    {title:'Sports', count:6}
+  ];
+  lists.forEach(l=>{
+    const c = document.createElement('div'); c.className='card';
+    c.innerHTML = `<div style="font-weight:700">${l.title}</div><div class="small">${l.count} channels</div>`;
+    playlistsEl.appendChild(c);
+  });
+}
+
+function renderCategories(){
+  categoriesEl.innerHTML = '';
+  const cats = Array.from(new Set(state.channels.map(c=>c.category)));
+  cats.forEach(cat=>{
+    const el = document.createElement('div'); el.className='card category';
+    el.innerHTML = `<div class="icon">${cat[0]||'C'}</div><div style="font-weight:700">${cat}</div><div class="small">Explore</div>`;
+    el.addEventListener('click', ()=>{ gotoScreen('search'); searchInput.value=''; filterCategory.value=cat; applyFilters(); });
+    categoriesEl.appendChild(el);
+  });
+}
+
+function renderRecently(){
+  recentlyEl.innerHTML = '';
+  state.recent.forEach(id=>{
+    const ch = state.channels.find(c=>c.id===id);
+    if(!ch) return;
+    const el = document.createElement('div'); el.className='card';
+    el.innerHTML = `<div style="font-weight:700">${ch.title}</div><div class="small">${ch.category}</div>`;
+    el.addEventListener('click', ()=> playChannel(ch.id));
+    recentlyEl.appendChild(el);
+  });
+}
+
+function renderPopular(){
+  popularEl.innerHTML = '';
+  state.channels.filter(c=>c.popular).forEach(ch=>{
+    const el = document.createElement('div'); el.className='card';
+    el.innerHTML = `<div class="playlist-thumb"><div class="thumb" style="height:72px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:white;font-weight:700">${ch.thumbnail}</div></div><div style="margin-top:8px;font-weight:700">${ch.title}</div><div class="small">${ch.category}</div>`;
+    el.addEventListener('click', ()=> playChannel(ch.id));
+    popularEl.appendChild(el);
+  });
+}
+
+/* Search rendering */
+function populateFilters(){
+  const cats = Array.from(new Set(state.channels.map(c=>c.category)));
+  filterCategory.innerHTML = '<option value="">All categories</option>' + cats.map(c=>`<option>${c}</option>`).join('');
+  // language set from channels
+  const langs = Array.from(new Set(state.channels.map(c=>c.language).filter(Boolean)));
+  filterLang.innerHTML = '<option value="">All languages</option>' + langs.map(l=>`<option>${l}</option>`).join('');
+}
+
+function renderSearch(results){
+  searchResults.innerHTML = '';
+  if(results.length===0){ noResults.style.display='block'; return; } else noResults.style.display='none';
+  results.forEach(ch=>{
+    const el = document.createElement('div'); el.className='channel-card card';
+    el.innerHTML = `
+      <div class="channel-thumb">${ch.thumbnail}</div>
+      <div style="width:100%"><div style="font-weight:700">${ch.title}</div><div class="small">${ch.category} • ${ch.language||'—'}</div></div>
+      <div class="channel-meta"><small>${ch.status || 'Idle'}</small><div><button class="icon-btn play-btn" data-id="${ch.id}" title="Play"><i class="fa fa-play"></i></button><button class="icon-btn fav-btn" data-id="${ch.id}" title="Favorite"><i class="fa fa-heart"></i></button></div></div>`;
+    searchResults.appendChild(el);
+
+    el.querySelector('.play-btn').addEventListener('click', ()=> playChannel(ch.id));
+    el.querySelector('.fav-btn').addEventListener('click', ()=> toggleFavorite(ch.id));
+  });
+}
+
+/* Apply filters */
+function applyFilters(){
+  const q = (searchInput.value || '').toLowerCase().trim();
+  const cat = filterCategory.value;
+  const lang = filterLang.value;
+  const qual = filterQuality.value;
+  let results = state.channels.filter(ch=>{
+    if(q && !ch.title.toLowerCase().includes(q)) return false;
+    if(cat && ch.category !== cat) return false;
+    if(lang && ch.language !== lang) return false;
+    if(qual && !(qual === 'Auto' ? ch.sources && ch.sources['Auto'] : Object.keys(ch.sources || {}).includes(qual))) return false;
+    return true;
+  });
+  renderSearch(results);
+}
+
+/* Favorites */
+function toggleFavorite(id){
+  if(state.favorites.has(id)) state.favorites.delete(id); else state.favorites.add(id);
+  saveFavorites();
+}
+function renderFavorites(){
+  favoritesList.innerHTML = '';
+  const favs = Array.from(state.favorites).map(id => state.channels.find(c=>c.id===id)).filter(Boolean);
+  if(favs.length===0){ favoritesEmpty.style.display='block'; return; } else favoritesEmpty.style.display='none';
+  favs.forEach(ch=>{
+    const el = document.createElement('div'); el.className='card';
+    el.innerHTML = `<div style="font-weight:700">${ch.title}</div><div class="small">${ch.category}</div>`;
+    el.addEventListener('click', ()=> playChannel(ch.id));
+    favoritesList.appendChild(el);
+  });
+}
+
+/* Player logic using HLS.js */
+async function playChannel(id, quality='Auto'){
+  const ch = state.channels.find(c=>c.id===id);
+  if(!ch) return;
+  state.current = ch;
+  // update recent
+  state.recent = [id].concat(state.recent.filter(x=>x!==id));
+  saveRecent();
+  renderRecently();
+
+  // Populate qualities
+  qualitySelect.innerHTML = Object.keys(ch.sources || {}).map(k=>`<option>${k}</option>`).join('');
+  qualitySelect.value = quality in ch.sources ? quality : (ch.sources['Auto'] ? 'Auto' : Object.keys(ch.sources)[0]);
+
+  // Update UI
+  playerTitle.textContent = ch.title;
+  playerInfo.textContent = `${ch.category} • ${qualitySelect.value} • ${ch.status || 'Idle'}`;
+  btnFav.classList.toggle('active', state.favorites.has(ch.id));
+  gotoScreen('player');
+
+  // Start streaming
+  const url = ch.sources[qualitySelect.value] || Object.values(ch.sources)[0];
+  await loadStream(url);
+
+  // suggested channels list
+  renderPlayerSuggested(ch.id);
+}
+
+/* loadStream uses HLS.js when needed */
+async function loadStream(url){
+  // stop previous
+  if(state.hls){ try{ state.hls.destroy(); }catch(e){} state.hls = null; }
+  playerVideo.pause(); playerVideo.removeAttribute('src'); playerVideo.load();
+
+  // HLS support check
+  if(Hls.isSupported()){
+    const hls = new Hls({maxBufferLength:30});
+    state.hls = hls;
+    hls.loadSource(url);
+    hls.attachMedia(playerVideo);
+    hls.on(Hls.Events.MANIFEST_PARSED, function(){
+      if(state.settings.autoplay) playerVideo.play().catch(()=>{});
+    });
+    hls.on(Hls.Events.ERROR, function(event, data){
+      console.warn('HLS error', data);
+    });
+  } else {
+    // native
+    playerVideo.src = url;
+    if(state.settings.autoplay) playerVideo.play().catch(()=>{});
+  }
+}
+
+/* Suggested under player */
+function renderPlayerSuggested(currentId){
+  const el = document.getElementById('playerSuggested');
+  el.innerHTML = '';
+  state.channels.filter(c=>c.id!==currentId).slice(0,8).forEach(ch=>{
+    const card = document.createElement('div'); card.className='card';
+    card.innerHTML = `<div style="font-weight:700">${ch.title}</div><div class="small">${ch.category}</div>`;
+    card.addEventListener('click', ()=> playChannel(ch.id));
+    el.appendChild(card);
+  });
+}
+
+/* Navigation */
+function gotoScreen(name){
+  screens.forEach(s=>s.classList.remove('active'));
+  const target = document.getElementById(name);
+  if(target) target.classList.add('active');
+  navItems.forEach(n=>n.classList.toggle('active', n.dataset.screen===name));
+}
+
+/* Wire nav */
+navItems.forEach(n=>{
+  n.addEventListener('click', ()=> gotoScreen(n.dataset.screen));
+});
+
+/* Small UI actions */
+document.getElementById('goSearch').addEventListener('click', ()=> gotoScreen('search'));
+document.getElementById('openSettings').addEventListener('click', ()=> gotoScreen('settings'));
+document.getElementById('openEPG').addEventListener('click', ()=> showEPG());
+
+/* Player controls */
+btnBack.addEventListener('click', ()=> gotoScreen('home'));
+btnFav.addEventListener('click', ()=> {
+  if(!state.current) return;
+  toggleFavorite(state.current.id);
+  btnFav.classList.toggle('active', state.favorites.has(state.current.id));
+});
+qualitySelect.addEventListener('change', ()=>{
+  if(!state.current) return;
+  playerInfo.textContent = `${state.current.category} • ${qualitySelect.value} • ${state.current.status || 'Idle'}`;
+  const url = state.current.sources[qualitySelect.value] || Object.values(state.current.sources)[0];
+  loadStream(url);
+});
+
+btnMini.addEventListener('click', ()=> openMiniPlayer());
+btnFullscreen.addEventListener('click', ()=> {
+  const el = playerVideo;
+  if(el.requestFullscreen) el.requestFullscreen();
+});
+
+/* Search filters */
+searchInput.addEventListener('input', applyFilters);
+filterCategory.addEventListener('change', applyFilters);
+filterLang.addEventListener('change', applyFilters);
+filterQuality.addEventListener('change', applyFilters);
+document.getElementById('clearFilters').addEventListener('click', ()=>{ searchInput.value=''; filterCategory.value=''; filterLang.value=''; filterQuality.value=''; applyFilters(); });
+
+/* Settings interactions */
+document.getElementById('toggleTheme').addEventListener('click', ()=>{
+  state.settings.theme = state.settings.theme === 'light' ? 'dark' : 'light';
+  saveSettings();
+});
+document.getElementById('themeColor').addEventListener('change', (e)=>{
+  state.settings.color = e.target.value;
+  saveSettings();
+});
+document.getElementById('autoplayToggle').addEventListener('change', (e)=>{ state.settings.autoplay = e.target.checked; saveSettings(); });
+document.getElementById('pipToggle').addEventListener('change', (e)=>{ /* toggles mini player allowed in UI */ state.settings.pip = e.target.checked; saveSettings(); });
+
+document.getElementById('openImport').addEventListener('click', ()=> showImportModal());
+document.getElementById('openAddChannel').addEventListener('click', ()=> showAddChannelModal());
+document.getElementById('clearCache').addEventListener('click', ()=> { localStorage.clear(); location.reload(); });
+document.getElementById('exportFavs').addEventListener('click', ()=> {
+  const data = JSON.stringify(Array.from(state.favorites).map(id=>state.channels.find(c=>c.id===id)).filter(Boolean), null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'flux_favorites.json'; a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* Modals & overlay */
+function showModal(html){
+  modalContent.innerHTML = html;
+  overlay.classList.add('show');
+}
+function closeModal(){ overlay.classList.remove('show'); modalContent.innerHTML = ''; }
+overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeModal(); });
+
+/* Import playlist modal (simple M3U parser) */
+function showImportModal(){
+  showModal(`
+    <h3>Import Playlist (M3U)</h3>
+    <p class="small">Paste M3U/M3U8 content or list of URLs. Each entry will attempt to be parsed as a channel.</p>
+    <textarea id="m3utext" rows="8" placeholder="#EXTM3U..."></textarea>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button class="btn" id="doImport">Import</button>
+      <button class="btn ghost" id="cancelImport">Cancel</button>
+    </div>
+  `);
+  qs('#cancelImport').addEventListener('click', closeModal);
+  qs('#doImport').addEventListener('click', ()=>{
+    const content = qs('#m3utext').value.trim();
+    if(!content) return alert('Paste M3U text or URLs');
+    const lines = content.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    const entries = [];
+    let lastTitle = '';
+    lines.forEach(line=>{
+      if(line.startsWith('#EXTINF:')){
+        const m = line.split(',')[1] || line;
+        lastTitle = m;
+      } else if(line.startsWith('http')){
+        const id = 'custom_' + Date.now() + Math.random().toString(36).slice(2,8);
+        entries.push({
+          id,
+          title: lastTitle || line,
+          category: 'Imported',
+          language: '',
+          thumbnail: 'PL',
+          sources: { 'Auto': line },
+          custom: true
+        });
+        lastTitle = '';
+      }
+    });
+    if(entries.length===0) return alert('No URLs found in the text.');
+    state.channels = entries.concat(state.channels);
+    saveCustomChannels();
+    populateAndRenderAll();
+    closeModal();
+    alert(`Imported ${entries.length} channels`);
+  });
+}
+
+/* Add Channel modal */
+function showAddChannelModal(){
+  showModal(`
+    <h3>Add Channel</h3>
+    <label>Name</label><input id="addName" placeholder="Channel Name" />
+    <label>Category</label><input id="addCategory" placeholder="Category" />
+    <label>Language</label><input id="addLang" placeholder="EN" />
+    <label>URL (HLS)</label><input id="addUrl" placeholder="https://..." />
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button class="btn" id="addDo">Add</button>
+      <button class="btn ghost" id="addCancel">Cancel</button>
+    </div>
+  `);
+  qs('#addCancel').addEventListener('click', closeModal);
+  qs('#addDo').addEventListener('click', ()=>{
+    const name = qs('#addName').value.trim(); const cat = qs('#addCategory').value.trim()||'Custom';
+    const lang = qs('#addLang').value.trim(); const url = qs('#addUrl').value.trim();
+    if(!name || !url) return alert('Provide name and URL.');
+    const id = 'custom_' + Date.now() + Math.random().toString(36).slice(2,8);
+    const ch = { id, title: name, category: cat, language: lang, thumbnail: name.split(' ').map(s=>s[0]).slice(0,2).join(''), sources: {'Auto': url}, custom:true };
+    state.channels.unshift(ch);
+    saveCustomChannels();
+    populateAndRenderAll();
+    closeModal();
+  });
+}
+
+/* EPG modal (demo schedule) */
+function showEPG(){
+  document.querySelector('.app').classList.add('blurred');
+  showModal(`<h3>Electronic Program Guide</h3>
+    <p class="small">Program guide (demo). Click anywhere outside to close.</p>
+    <div style="display:grid; gap:8px; margin-top:8px; max-height:320px; overflow:auto;">
+      ${state.channels.slice(0,12).map(ch=>`<div style="padding:8px;border-radius:8px;background:var(--glass)"><strong>${ch.title}</strong><div class="small">${new Date().toLocaleTimeString()} • ${ch.category}</div><div class="small">Next: ${new Date(Date.now()+3600000).toLocaleTimeString()}</div></div>`).join('')}
+    </div>
+    <div style="display:flex; justify-content:flex-end; margin-top:12px;"><button class="btn" id="closeEPGBtn">Close</button></div>`);
+  qs('#closeEPGBtn').addEventListener('click', ()=>{ closeModal(); document.querySelector('.app').classList.remove('blurred'); });
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay){ document.querySelector('.app').classList.remove('blurred'); } }, {once:true});
+}
+
+/* Mini player */
+function openMiniPlayer(){
+  if(!state.current) return;
+  // create floating mini player
+  const mini = document.createElement('div');
+  mini.className = 'mini-player';
+  mini.innerHTML = `<video id="miniVideo" muted autoplay playsinline></video><div style="position:absolute;right:6px;top:6px;display:flex;gap:6px;"><button class="icon-btn" id="miniExpand"><i class="fa fa-expand"></i></button><button class="icon-btn" id="miniClose"><i class="fa fa-xmark"></i></button></div>`;
+  miniContainer.innerHTML = '';
+  miniContainer.appendChild(mini);
+
+  const miniVideo = mini.querySelector('#miniVideo');
+  // transfer current playback
+  if(state.hls){
+    // attach hls to mini element (recreate)
+    try{ state.hls.destroy(); }catch(e){}
+    state.hls = null;
+  }
+  // load same URL into mini
+  const url = state.current.sources['Auto'] || Object.values(state.current.sources)[0];
+  if(Hls.isSupported()){
+    const hls = new Hls();
+    state.hls = hls;
+    hls.loadSource(url);
+    hls.attachMedia(miniVideo);
+  } else {
+    miniVideo.src = url;
+  }
+
+  mini.querySelector('#miniClose').addEventListener('click', ()=> {
+    try{ if(state.hls){ state.hls.destroy(); state.hls = null; } }catch(e){}
+    mini.remove();
+  });
+  mini.querySelector('#miniExpand').addEventListener('click', ()=> {
+    // bring back to player screen
+    try{ if(state.hls){ state.hls.destroy(); state.hls = null; } }catch(e){}
+    mini.remove();
+    playChannel(state.current.id);
+  });
+}
+
+/* Populate UI initially */
+function populateAndRenderAll(){
+  populateFilters();
+  renderPlaylists(); renderCategories(); renderRecently(); renderPopular();
+  updateStats(); renderFavorites();
+  applySettingsUI();
+}
+populateAndRenderAll();
+
+/* Apply settings to UI toggles */
+function applySettingsUI(){
+  document.getElementById('themeColor').value = state.settings.color || 'navy';
+  document.getElementById('autoplayToggle').checked = !!state.settings.autoplay;
+  document.getElementById('pipToggle').checked = !!state.settings.pip;
+}
+
+/* initial search results show popular */
+applyFilters();
+
+/* wire search result play/fav delegation (in case) */
+searchResults.addEventListener('click', (e)=>{ const p = e.target.closest('.channel-card'); if(!p) return; });
+
+/* helper to render everything when channels change */
+function refreshAll(){
+  populateFilters();
+  renderPlaylists(); renderCategories(); renderRecently(); renderPopular();
+  renderSearch(state.channels);
+  updateStats();
+}
+
+/* Manage custom channels placeholder - simple view */
+document.getElementById('manageChannels').addEventListener('click', ()=>{
+  showModal(`<h3>Manage Custom Channels</h3>
+    <div class="small" style="max-height:300px; overflow:auto; margin-top:8px;">
+      ${state.channels.filter(c=>c.custom).map(ch=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:var(--glass);margin-bottom:6px">
+        <div><strong>${ch.title}</strong><div class="small">${ch.category}</div></div>
+        <div style="display:flex;gap:6px"><button class="btn del" data-id="${ch.id}">Delete</button></div>
+      </div>`).join('') || '<div class="small">No custom channels</div>'}
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn" id="closeManage">Close</button></div>
+  `);
+  modalContent.querySelectorAll('.del').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const id = b.dataset.id;
+      state.channels = state.channels.filter(c=>c.id!==id);
+      saveCustomChannels();
+      closeModal(); populateAndRenderAll();
+    });
+  });
+  qs('#closeManage').addEventListener('click', closeModal);
+});
+
+/* initial: if there is a favorite, auto-play first fav if autoplay */
+if(state.settings.autoplay && state.favorites.size>0){
+  const fid = Array.from(state.favorites)[0];
+  setTimeout(()=>playChannel(fid), 600);
+}
+
+/* ensure UI is responsive & accessible (keyboard nav) */
+document.addEventListener('keydown', (e)=> {
+  if(e.key === 'Escape') {
+    closeModal();
+    document.querySelectorAll('.mini-player').forEach(mp=>mp.remove());
+  }
+});
+
+/* final update */
+updateStats();
+renderSearch(state.channels.slice(0,20));
+renderPopular();
+renderPlaylists();
+renderCategories();
+renderRecently();
+renderFavorites();
+
+</script>
+</body>
+</html>
